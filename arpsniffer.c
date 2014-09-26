@@ -42,19 +42,53 @@ typedef struct arphdr{
 
 #define MAXBYTES2CAPTURE 2048
 
+void dealPacket(u_char * userarg, const struct pcap_pkthdr *pkthdr, 
+			const u_char *packet){
+
+	int i = 0;
+	arphdr_t *arpheader = (struct arphdr *)(packet + 14);
+	
+	printf ("\n\nReceived Packet Size: %d bytes\n", pkthdr->len);
+	printf ("Hardware type: %s\n", (ntohs(arpheader->hardType) == 1 ? "Ethernet" : "Unknow"));
+ 	printf ("Protocol type : %s\n", (ntohs(arpheader->protocolType) == 0x0800) ? "Ethernet" : "Unknow");
+	printf ("Operation: %s\n", (ntohs(arpheader->oper) == ARP_REPLY )? "ARP Request": "ARP Reply");
+		
+	if (ntohs(arpheader->hardType) == 1 && ntohs(arpheader->protocolType) == 0x0800){
+		printf ("Send MAX:");
+			
+		for (i = 0; i < 6; i++){
+			printf ("%02x:", arpheader->sendHardAdr[i]);
+		}
+		
+		printf ("\nSend IP:");
+
+		for (i = 0; i < 4; i++){
+			printf ("%d.", arpheader->sendIPAdr[i]);
+		}
+
+		printf ("\nTarget MAC:");
+
+		for (i = 0; i < 6; i++){
+			printf ("%02x:", arpheader->targetHardAdr[i]);
+		}
+
+		printf ("\nTarget IP:");
+
+		for (i = 0; i < 4; i++){
+			printf ("%d.", arpheader->targetIPAdr[i]);
+		}
+	}
+}
 
 int main(int argc, char *argv[])
 {
 	int i =0;
 	struct bpf_program filter;
 	struct pcap_pkthdr pkthdr;
-	struct ip *iphdr = NULL;
-	struct tcphdr &tcphdr = NULL;
 	char errbuf[PCAP_ERRBUF_SIZE];
 	const unsigned char *packet = NULL;
 	pcap_t *descr = NULL;
 	bpf_u_int32 netaddr = 0, mask = 0;
-	arphdr_t *arpheader = NULL;
 
 	memset (errbuf, 0, PCAP_ERRBUF_SIZE);
 
@@ -85,38 +119,9 @@ int main(int argc, char *argv[])
 		exit(-3);
 	}
 
-	while (1){
-		if ((packet = pcap_next(descr, &pkthdr)) == NULL){
-			fprintf(stderr, "Error in pcap+next()\n", errbuf);
+	pcap_loop(descr, -1, dealPacket, NULL);
 
-			exit (-4);
-		}
-
-		arpheader = (struct arphdr *)(packet + 14);
-		
-		printf ("\n\nReceived Packet Size: %d bytes\n", pkthdr->len);
-		printf ("Hardware type: %s\n", (ntohs(arpheader->hardType) == 1 ? "Ethernet" : "Unknow"));
- 		printf ("Protocol type : %s\n", (ntohs(arpheader->protocolType) == 0x0800) ? "Ethernet" : "Unknow");
-		printf ("Operation: %s\n", (ntohs(arpheader->oper) == ARP_REPLY )? "ARP Request": "ARP Reply");
-		
-		if (ntohs(arpheader->hardType) == 1 && ntohs(arpheader->protocolType) == 0x0800){
-			printf ("Send MAX:");
-			
-			for (i = 0; i < 6; i++){
-				printf ("%02x:", arpheader->sendHardAdr[i]);
-			}
-
-			printf ("\nSend IP:");
-
-			for (i = 0; i < 4; i++){
-				printf ("%d.", arpheader->sendIPAdr);
-			}
-
-			printf ("");
-		}
-	}
-
-
+	
 
 	return EXIT_SUCCESS;
 }
