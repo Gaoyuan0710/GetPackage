@@ -37,7 +37,38 @@ int main(int argc, char *argv[])
 {
 	int skfd;
 	struct sockaddr_in target;
+	struct hostent *host;
+	const int on = 1;
+	unsigned short srcport;
 
+	if (argc != 2){
+		printf ("Usage:%s target dsport srcport\n", argv[0]);
+
+		exit (-1);
+	}
+
+	bzero()&target, sizeof(struct sockaddr_in);
+	target.sin_family = AF_INET;
+	target.sin_port = htons(atoi(argv[2]));
+
+	if (inet_aton(argv[1], &target.sin_addr) == 0){
+		host = gethostbyname(argv[1]);
+		if (host == NULL){
+			printf ("Target Name error:%s\n", hstrerror(h_errno));
+
+			exit(-2);
+		}
+		target.sin_addr = (struct in_addr)(host->h_addr_list[0]);
+	}
+
+	if (0 > (skfd = socket(AF_INET, SOCK_RAW, IPPROTO_TCP))){
+		perror("Create Error");
+
+		exit (-2);
+	}
+
+	if (0 > (setsockopt(skfd, IPPROTO_IP, IP_HDRINCL, &on, 
+						sizeof(on))))
 
 
 	return EXIT_SUCCESS;
