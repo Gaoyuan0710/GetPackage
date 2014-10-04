@@ -28,6 +28,8 @@
 #include <netinet/ip.h>
 #include <netinet/if_ether.h>
 #include <arpa/inet.h>
+#include <net/if.h>
+#include <sys/ioctl.h>
 
 int main(int argc, char *argv[])
 {
@@ -37,13 +39,34 @@ int main(int argc, char *argv[])
 	char str[2014];
 	struct ethhdr *eth;
 	struct iphdr *iph;
+	struct ifreq ethreq;
 
 	if (0 > (sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP)))){
 		perror("socket");
 
 		return -1;
 	}
+
+	strncpy(ethreq.ifr_ifrn.ifrn_name, "p8p1", IFNAMSIZ);
+
+	if (-1 == ioctl(sock, SIOCGIFFLAGS, &ethreq)){
+		perror("ioctl");
+		close(sock);
+
+		return -2;
+	}
 	
+	ethreq.ifr_ifru.ifru_flags |= IFF_PROMISC;
+
+	if (-1 == ioctl(sock, SIOCGIFFLAGS, &ethreq)){
+		perror("ioctl");
+		close(sock);
+
+		return -3;
+	}
+
+	
+
 	while (1){
 		printf ("==========================================\n");
 
