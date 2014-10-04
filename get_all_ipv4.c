@@ -31,13 +31,14 @@
 
 int main(int argc, char *argv[])
 {
-	int socket, n;
+	int sock, n;
 	int i;
 	char buffer[2048];
+	char str[2014];
 	struct ethhdr *eth;
 	struct iphdr *iph;
 
-	if (0 > (socket = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP)))){
+	if (0 > (sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_IP)))){
 		perror("socket");
 
 		return -1;
@@ -46,7 +47,7 @@ int main(int argc, char *argv[])
 	while (1){
 		printf ("==========================================");
 
-		n = recvfrom(socket, buffer, sizeof(buffer), 0, NULL. NULL);
+		n = recvfrom(sock, buffer, sizeof(buffer), 0, NULL, NULL);
 		printf ("%d bytes read\n", n);
 
 		eth = (struct ethhdr *)buffer;
@@ -63,8 +64,10 @@ int main(int argc, char *argv[])
 		iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
 
 		if (iph->version == 4 && iph->ihl == 5){
-			printf ("Source host:%s\n", inet_ntop(iph->saddr));
-			printf ("Dest host:%s\n", inet_ntop(iph->daddr));
+			printf ("Source host:%s\n", inet_ntop(AF_INET, 
+							&iph->saddr, str, sizeof(str)));
+			printf ("Dest host:%s\n", inet_ntop(AF_INET, 
+							&iph->daddr, str, sizeof(str)));
 		}
 	}
 
