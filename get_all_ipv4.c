@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
 	}
 	
 	while (1){
-		printf ("==========================================");
+		printf ("==========================================\n");
 
 		n = recvfrom(sock, buffer, sizeof(buffer), 0, NULL, NULL);
 		printf ("%d bytes read\n", n);
