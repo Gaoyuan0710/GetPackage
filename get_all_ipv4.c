@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
 		for (i = 0; i < 6; i++){
 			printf(":%02x", eth->h_dest[i]);
 		}
-		printf ("Source MAC addr ");
+		printf ("\nSource MAC addr ");
 		for (i = 0; i < 6; i++){
 			printf(":%02x", eth->h_source[i]);
 		}
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
 		iph = (struct iphdr *)(buffer + sizeof(struct ethhdr));
 
 		if (iph->version == 4 && iph->ihl == 5){
-			printf ("Source host:%s\n", inet_ntop(AF_INET, 
+			printf ("\nSource host:%s\n", inet_ntop(AF_INET, 
 							&iph->saddr, str, sizeof(str)));
 			printf ("Dest host:%s\n", inet_ntop(AF_INET, 
 							&iph->daddr, str, sizeof(str)));
