@@ -50,8 +50,39 @@ int main(int argc, char *argv[])
 										0xff};
 
 	if (3 != argc){
-		
+		printf ("Usage : %s netdevname desIP\n", argv[0]);
+
+		return -1;
 	}
+
+	if (0 > (skfd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL)))){
+		perror("Create Error\n");
+
+		return -2;
+	}
+
+	bzero(&toaddr, sizeof(toaddr));
+	bzero(&ifr, sizeof(ifr));
+
+	strcpy(if.ifr_name, argv[1]);
+
+	if (-1 == ioctl(skfd, SIOCGIFINDEX, &ifr)){
+		perror("get dev index error");
+
+		return -3;
+	}
+	toaddr.sll_ifindex = ifr.ifr_ifindex;
+	printf ("Interface Index: %d\n", ifr.ifr_ifindex);
+
+	if (-1 == ioctl(skfd, SIOCGIFADDR, *ifr)){
+		perror("Get IP addr error");
+
+		return -4;
+	}
+
+	srcIP.s_addr = ((struct sockaddr_in *)&(ifr.ifr_ifru.ifru_addr))->
+		sin_addr.s_addr;
+
 
 
 	return EXIT_SUCCESS;
