@@ -76,7 +76,6 @@ int main(int argc, char *argv[])
 
 	if (-1 == ioctl(skfd, SIOCGIFADDR, *ifr)){
 		perror("Get IP addr error");
-
 		return -4;
 	}
 
