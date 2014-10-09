@@ -41,13 +41,14 @@ int main(int argc, char *argv[])
 	int skfd, n;
 	int i;
 	char buf[BUFLINE] = {0};
-	struct ether_header *eth;
-	struct ether_arp *arp;
-	struct sockaddr_ll toaddr;
-	struct in_addr targetIP, srcIP;
-	struct ifreq ifr;
+	struct ether_header *eth;                //以太网报头结构信息
+	struct ether_arp *arp;                   //arp 报头信息
+	struct sockaddr_ll toaddr;               //表示与设备无关的物理层地址结构
+	struct in_addr targetIP, srcIP;         
+	struct ifreq ifr;                        //用来配置ip地址等接口信息
 
-	unsigned char src_mac[ETH_ALEN] = {0};
+
+	unsigned char src_mac[ETH_ALEN] = {0};   //ETH_ALEN MAC 地址长度
 	unsigned char dst_mac[ETH_ALEN] = {0xff, 0xff, 0xff, 0xff, 0xff,
 										0xff};
 
