@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	if (0 > (skfd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL)))){
+	if (0 > (skfd = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL)))){ //发送接收以太网数据帧
 		perror("Create Error\n");
 
 		return -2;
