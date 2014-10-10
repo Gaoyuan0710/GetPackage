@@ -46,5 +46,6 @@ void *recv_ping();
 void tv_sub(struct timeval *out, struct timeval *in);
 int pack(int send_pkt);
 int unpack(char *recv_pkt, int size);
-int in_chksum(int send_pkt);
+int in_chksum(unsigned short *buf, int size);
 
+#endif

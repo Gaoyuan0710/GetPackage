@@ -21,16 +21,80 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #include "my_ping.h"
 
 int main(int argc, char *argv[])
 {
+	int size = 50 * 1024;
+	int errno = -1;
+	int ttl = 64;
+	void * tret;
+	pthread_t send_id, recv_id;
+	struct in_addr ipv4_addr;
+	struct hostent *ipv4_host;
+	struct protoent *protocol = NULL;
+
+	if (argc < 2){
+		printf ("Usage : ./filename <host>\n");
+
+		return -1;
+	}
+	if((protocol = getprotobyname("icmp")) == NULL){
+		printf ("unknown protocol\n");
+
+		return -1;
+	}
+	if ((sockfd = socket(AF_INET, SO_RCVBUF, protocol->p_proto)) < 0){
+		printf ("socket failed\n");
+
+		return -1;
+	}
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVBUF, &size, sizeof(size));
+	setsockopt(sockfd, IPPROTO_IP, IP_MULTICAST_TTL, &ttl, sizeof(ttl));
+	setsockopt(sockfd, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
+
+	memset(&dst_addr, 0, sizeof(dst_addr));
+
+	dst_addr.sin_family = AF_INET;
+
+	if ((errno = inet_aton(argv[1], &ipv4_addr)) == 0){
+		ipv4_host = gethostbyname(argv[1]);
+
+		if (NULL == ipv4_host){
+			printf ("connect :Invalid argument\n");
+
+			return -1;
+		}
+		memcpy(&(dst_addr.sin_addr), ipv4_host->h_addr_list[0], sizeof(struct in_addr));
+	}
+
+	pid = getpid();
+
+	printf ("PING %s (%s) %d bytes of data.\n", argv[1], inet_ntoa(dst_addr.sin_addr), bytes);
+	signal(SIGINT, statistice);
+
+	errno = pthread_create(&send_id, NULL, send_ping, NULL);
+	if (errno != 0){
+		printf ("send_ping thread fail\n");
+
+		return -1;
+	}
+	errno = pthread_create(&recv_id, NULL, recv_ping, NULL);
+	if (errno != 0){
+		printf("rec_ping thread fail\n");
+
+		return -1;
+	}
+
+	pthread_join(send_id, &tret);
+	pthread_join(recv_id, &tret);
 
 	return EXIT_SUCCESS;
 }
 
-void statistics()
+void statistice()
 {
 	printf ("\n----%s ping statistic---\n", inet_ntoa(dst_addr.sin_addr));
 	printf ("%d packets transmitted, %d received, %.3f %c packet loss\n",
@@ -57,7 +121,7 @@ int in_chksum(unsigned short *buf, int size)
 	}
 	sum = (sum >> 16) + (sum & 0xFFFF);
 	sum += (sum >> 16);
-	ans ~= sum;
+	ans = ~sum;
 
 	return ans;
 }
@@ -88,7 +152,7 @@ void * send_ping(){
 		ret = sendto(sockfd, icmp_pkt, send_bytes, 0, (struct sockaddr *) & dst_addr, sizeof(dst_addr));
 
 		if (-1 == ret){
-			printf (send failed\n);
+			printf ("send failed\n");
 			sleep(1);
 			continue;
 		}
@@ -96,7 +160,7 @@ void * send_ping(){
 	}
 }
 
-int tv_sub(struct timeval *out, struct timeval *in){
+void tv_sub(struct timeval *out, struct timeval *in){
 	if ((out->tv_usec -= in->tv_usec) < 0){
 		--out->tv_sec;
 		out->tv_usec += 1000000;
@@ -153,15 +217,15 @@ void *recv_ping()
 		if (ret < 0){
 			continue;
 		}
-		else if(FD_SETSIZE(sockfd, &rd_set)){
+		else if(FD_ISSET(sockfd, &rd_set)){
 			nread = recvfrom(sockfd, recv_pkt, sizeof(recv_pkt), 0, 
-						(struct sockaddr *) & recv_addr, (socklen_t *)&recv_len)
-			if (nread < 0){
+						(struct sockaddr *) & recv_addr, (socklen_t *)&recv_len);
+			if(nread < 0){
 				continue;
 			}
 			gettimeofday (&tvrecv, NULL);
 
-			if_(unpack(recv_pkt, nread) == -1){
+			if(unpack(recv_pkt, nread) == -1){
 				continue;
 			}
 			nrecv_pkt++;
