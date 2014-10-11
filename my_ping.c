@@ -36,17 +36,20 @@ int main(int argc, char *argv[])
 	struct hostent *ipv4_host;
 	struct protoent *protocol = NULL;
 
+	argv[1] = "baidu.com";
+
 	if (argc < 2){
 		printf ("Usage : ./filename <host>\n");
 
 		return -1;
 	}
+
 	if((protocol = getprotobyname("icmp")) == NULL){
 		printf ("unknown protocol\n");
 
 		return -1;
 	}
-	if ((sockfd = socket(AF_INET, SO_RCVBUF, protocol->p_proto)) < 0){
+	if ((sockfd = socket(AF_INET, SOCK_RAW, protocol->p_proto)) < 0){
 		printf ("socket failed\n");
 
 		return -1;
@@ -146,10 +149,14 @@ void * send_ping(){
 	int ret = -1;
 
 	while (1){
+
+
 		nsend_pkt++;
 		send_bytes = pack(nsend_pkt);
 
 		ret = sendto(sockfd, icmp_pkt, send_bytes, 0, (struct sockaddr *) & dst_addr, sizeof(dst_addr));
+
+		printf("\n Send ping %d \n", ret);
 
 		if (-1 == ret){
 			printf ("send failed\n");
@@ -179,11 +186,16 @@ int unpack(char *recv_pkt, int size){
 	icmp = (struct icmp *)(recv_pkt + iphdrlen);
 	iphdrlen = ip->ihl << 2;
 
+	size -= iphdrlen;
+
 	if (size < 8){
 		printf ("ICMP size is less than 8\n");
 
 		return -1;
 	}
+	printf("\n%d\t", (icmp->icmp_type == ICMP_ECHOREPLY));
+	printf("  %d\n", (icmp->icmp_hun.ih_idseq.icd_id == pid));
+
 	if ((icmp->icmp_type == ICMP_ECHOREPLY ) && (icmp->icmp_hun.ih_idseq.icd_id == pid)){
 		tvsend = (struct timeval *)icmp->icmp_dun.id_data;
 		tv_sub(&tvrecv, tvsend);
@@ -210,16 +222,24 @@ void *recv_ping()
 	recv_len = sizeof(recv_addr);
 
 	while(1){
+
+
 		FD_ZERO(&rd_set);
 		FD_SET(sockfd, &rd_set);
 
 		ret = select(sockfd + 1, &rd_set, NULL, NULL, &time);
-		if (ret < 0){
+
+		printf ("The value of select is %d\n", ret);
+
+		if (ret <= 0){
 			continue;
 		}
 		else if(FD_ISSET(sockfd, &rd_set)){
 			nread = recvfrom(sockfd, recv_pkt, sizeof(recv_pkt), 0, 
 						(struct sockaddr *) & recv_addr, (socklen_t *)&recv_len);
+			
+			printf("\nRecv ping %d\n", nread);
+
 			if(nread < 0){
 				continue;
 			}
@@ -229,6 +249,7 @@ void *recv_ping()
 				continue;
 			}
 			nrecv_pkt++;
+			
 		}
 
 	}
