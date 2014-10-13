@@ -36,8 +36,6 @@ int main(int argc, char *argv[])
 	struct hostent *ipv4_host;
 	struct protoent *protocol = NULL;
 
-	argv[1] = "baidu.com";
-
 	if (argc < 2){
 		printf ("Usage : ./filename <host>\n");
 
@@ -61,8 +59,10 @@ int main(int argc, char *argv[])
 	memset(&dst_addr, 0, sizeof(dst_addr));
 
 	dst_addr.sin_family = AF_INET;
+	
+	errno = inet_aton(argv[1], &ipv4_addr);
 
-	if ((errno = inet_aton(argv[1], &ipv4_addr)) == 0){
+	if (errno == 0){
 		ipv4_host = gethostbyname(argv[1]);
 
 		if (NULL == ipv4_host){
@@ -70,7 +70,10 @@ int main(int argc, char *argv[])
 
 			return -1;
 		}
-		memcpy(&(dst_addr.sin_addr), ipv4_host->h_addr_list[0], sizeof(struct in_addr));
+		memcpy(&(dst_addr.sin_addr), ipv4_host->h_addr, sizeof(struct in_addr));
+	}
+	else{
+		memcpy(&(dst_addr.sin_addr), &(ipv4_addr.s_addr), sizeof(struct in_addr));
 	}
 
 	pid = getpid();
@@ -135,9 +138,9 @@ int pack(int send_pkt){
 
 	pkt->icmp_type = ICMP_ECHO;
 	pkt->icmp_cksum = 0;
-	pkt->icmp_hun.ih_idseq.icd_seq = htons(nsend_pkt);
-	pkt->icmp_hun.ih_idseq.icd_id = pid;
-	time = (struct timeval *)pkt->icmp_dun.id_data;
+	pkt->icmp_seq = htons(nsend_pkt);
+	pkt->icmp_id = pid;
+	time = (struct timeval *)pkt->icmp_data;
 	gettimeofday(time, NULL);
 	pkt->icmp_cksum = in_chksum((unsigned short *)pkt, bytes + 8);
 
@@ -150,13 +153,10 @@ void * send_ping(){
 
 	while (1){
 
-
 		nsend_pkt++;
 		send_bytes = pack(nsend_pkt);
 
 		ret = sendto(sockfd, icmp_pkt, send_bytes, 0, (struct sockaddr *) & dst_addr, sizeof(dst_addr));
-
-		printf("\n Send ping %d \n", ret);
 
 		if (-1 == ret){
 			printf ("send failed\n");
@@ -183,8 +183,8 @@ int unpack(char *recv_pkt, int size){
 	double rtt;
 
 	ip = (struct iphdr *)recv_pkt;
+	iphdrlen = ip->ihl<<2;
 	icmp = (struct icmp *)(recv_pkt + iphdrlen);
-	iphdrlen = ip->ihl << 2;
 
 	size -= iphdrlen;
 
@@ -193,8 +193,6 @@ int unpack(char *recv_pkt, int size){
 
 		return -1;
 	}
-	printf("\n%d\t", (icmp->icmp_type == ICMP_ECHOREPLY));
-	printf("  %d\n", (icmp->icmp_hun.ih_idseq.icd_id == pid));
 
 	if ((icmp->icmp_type == ICMP_ECHOREPLY ) && (icmp->icmp_hun.ih_idseq.icd_id == pid)){
 		tvsend = (struct timeval *)icmp->icmp_dun.id_data;
@@ -229,8 +227,6 @@ void *recv_ping()
 
 		ret = select(sockfd + 1, &rd_set, NULL, NULL, &time);
 
-		printf ("The value of select is %d\n", ret);
-
 		if (ret <= 0){
 			continue;
 		}
@@ -238,8 +234,6 @@ void *recv_ping()
 			nread = recvfrom(sockfd, recv_pkt, sizeof(recv_pkt), 0, 
 						(struct sockaddr *) & recv_addr, (socklen_t *)&recv_len);
 			
-			printf("\nRecv ping %d\n", nread);
-
 			if(nread < 0){
 				continue;
 			}
@@ -249,7 +243,6 @@ void *recv_ping()
 				continue;
 			}
 			nrecv_pkt++;
-			
 		}
 
 	}
